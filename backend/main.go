@@ -6,18 +6,20 @@ import (
 	"net/http"
 
 	"github.com/archonward/CampusCommons/backend/database"
+	"github.com/archonward/CampusCommons/backend/handlers"
 	"github.com/rs/cors"
 )
 
 func main() {
 	
 	database.InitDB()
-
 	// I use a ServeMux here so that when we have more routes, the code will not be so confusing
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Backend is running, database connected")
 	})
+	
+	mux.HandleFunc("/topics", handlers.GetTopics) // any request on Topics handled here.
 	
 	// Enable CORS
 	c := cors.New(cors.Options{
