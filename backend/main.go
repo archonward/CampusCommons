@@ -4,13 +4,34 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/archonward/CampusCommons/backend/database"
+	"github.com/rs/cors"
 )
 
 func main() {
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Backend is running!")
-	})
+	
+	database.InitDB()
 
-	fmt.Println("🚀 Backend server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// I use a ServeMux here so that when we have more routes, the code will not be so confusing
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Backend is running, database connected")
+	})
+	
+	// Enable CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:3000"}, // React dev server
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
+		Debug:          false, // Set to true to log CORS-related issues during dev
+	})
+	
+	// Wrap the mux with CORS
+	handler := c.Handler(mux)
+
+	port := ":8080"
+	fmt.Printf("🚀 Server starting on http://localhost%s\n", port)
+	fmt.Printf("🔌 CORS enabled for http://localhost:3000\n")
+	log.Fatal(http.ListenAndServe(port, handler))
 }
