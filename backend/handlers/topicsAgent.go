@@ -59,3 +59,78 @@ func GetTopics(w http.ResponseWriter, r *http.Request) {
 	// Return JSON response
 	json.NewEncoder(w).Encode(topics)
 }
+
+// this new func will handle POST topic requests for people looking to post.
+func CreateTopic(w http.ResponseWriter, r *http.Request) {
+	
+	if r.Method != http.MethodPost {	// only POST
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// Decode JSON request, simple struct with 3 fields, again more could be added later
+	var input struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		CreatedBy   int    `json:"created_by"` // For now, i require user ID, 
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&input); err != nil {
+		log.Printf("Invalid JSON: %v", err)
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Validate to help to prevent bugs, title cannot be empty, userID also cannot
+	if input.Title == "" {
+		http.Error(w, "Title is required", http.StatusBadRequest)
+		return
+	}
+	if input.CreatedBy <= 0 {
+		http.Error(w, "Valid created_by user ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Insert into database
+	// .Exec is used for any commands that change data: insert, update, delete.
+	result, err := database.DB.Exec(`
+		INSERT INTO topics (title, description, created_by)
+		VALUES (?, ?, ?)	
+	`, input.Title, input.Description, input.CreatedBy)	//each of this will be inserted into the 3 placeholders.
+
+	if err != nil {
+		log.Printf("Database insert error: %v", err)
+		http.Error(w, "Failed to create topic", http.StatusInternalServerError)
+		return
+	}
+
+	// get the new topic ID that was inserted, result will contain the new row's ID
+	topicID, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Failed to get last insert ID: %v", err)
+		http.Error(w, "Failed to retrieve topic ID", http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch the full topic (to return complete object with timestamps)
+	var topic Topic
+	err = database.DB.QueryRow(`
+		SELECT id, title, description, created_by, created_at
+		FROM topics
+		WHERE id = ?
+	`, topicID).Scan(&topic.ID, &topic.Title, &topic.Description, &topic.CreatedBy, &topic.CreatedAt)
+
+	if err != nil {
+		log.Printf("Failed to fetch created topic: %v", err)
+		http.Error(w, "Failed to retrieve created topic", http.StatusInternalServerError)
+		return
+	}
+
+	// Return 201 Created + JSON topic
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(topic)
+}

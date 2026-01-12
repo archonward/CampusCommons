@@ -19,7 +19,19 @@ func main() {
 		fmt.Fprintf(w, "Backend is running, database connected")
 	})
 	
-	mux.HandleFunc("/topics", handlers.GetTopics) // any request on Topics handled here.
+	//mux.HandleFunc("/topics", handlers.GetTopics) // any request on get Topics handled here.
+	//mux.HandleFunc("/topics", handlers.CreateTopic) // request to create topics handled here.
+
+	mux.HandleFunc("/topics", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method { 	// switch here chooses which option to run based on the value of r.Method
+		case http.MethodGet:
+			handlers.GetTopics(w, r)
+		case http.MethodPost:
+			handlers.CreateTopic(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	
 	// Enable CORS
 	c := cors.New(cors.Options{
