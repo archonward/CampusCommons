@@ -19,8 +19,11 @@ func main() {
 		fmt.Fprintf(w, "Backend is running, database connected")
 	})
 	
-	//mux.HandleFunc("/topics", handlers.GetTopics) // any request on get Topics handled here.
-	//mux.HandleFunc("/topics", handlers.CreateTopic) // request to create topics handled here.
+	mux.HandleFunc("/login", handlers.Login)
+	
+	
+	//mux.HandleFunc("/topics", handlers.GetTopics) // any request on get Topics handled here
+	//mux.HandleFunc("/topics", handlers.CreateTopic)
 
 	mux.HandleFunc("/topics", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method { 	// switch here chooses which option to run based on the value of r.Method
@@ -38,7 +41,7 @@ func main() {
 		AllowedOrigins: []string{"http://localhost:3000"}, // React dev server
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
-		Debug:          false, // Set to true to log CORS-related issues during dev
+		Debug:          false, // may want to set to true to log CORS-related issues
 	})
 	
 	// Wrap the mux with CORS
