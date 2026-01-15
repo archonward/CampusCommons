@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Topic } from '../types';
+import { useNavigate } from 'react-router-dom';
+
 
 const TopicListPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +38,13 @@ const TopicListPage: React.FC = () => {
 
       {!loading && !error && (
         <div>
-          <button>Create New Topic</button>
+	  <button onClick={() => navigate('/topics/new')}>
+  		Create New Topic
+	  </button>
           <br />
           <br />
           {topics.length === 0 ? (
-            <p>No topics yet. Be the first to create one!</p>
+            <p>No topics yet. You can create the first topic by using the button. </p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0 }}>
               {topics.map((topic) => (

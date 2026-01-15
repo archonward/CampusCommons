@@ -3,7 +3,8 @@ import logo from './logo.svg';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import TopicListPage from './pages/TopicListPage'; // ← new import
+import TopicListPage from './pages/TopicListPage';
+import NewTopicPage from './pages/NewTopicPage';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
 	<Route path="/topics" element={<TopicListPage />} />
+	<Route path="/topics/new" element={<NewTopicPage />} /> 
       </Routes>
     </Router>
   );
