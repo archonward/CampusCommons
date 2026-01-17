@@ -22,8 +22,8 @@ const LoginPage: React.FC = () => {
     	setError(null);
 
     	try {
-      		await login(username.trim());
-      		// For now, just go to topics
+      		const user = await login(username.trim());
+		localStorage.setItem('currentUser', JSON.stringify(user));	//save to local storage
       		navigate('/topics');
     	} catch (err: any) {
       		setError(err.message || 'Login failed');
