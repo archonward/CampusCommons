@@ -21,6 +21,16 @@ func main() {
 	
 	mux.HandleFunc("/login", handlers.Login)
 	
+	mux.HandleFunc("/topics/{id}/posts", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetPostsByTopic(w, r)
+		case http.MethodPost:
+			handlers.CreatePost(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	
 	//mux.HandleFunc("/topics", handlers.GetTopics) // any request on get Topics handled here
 	//mux.HandleFunc("/topics", handlers.CreateTopic)
