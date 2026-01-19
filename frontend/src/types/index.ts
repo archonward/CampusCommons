@@ -11,3 +11,12 @@ export interface Topic {
   created_by: number;
   created_at: string; // ISO 8601 string
 }
+
+export interface Post {
+  id: number;
+  topic_id: number;
+  title: string;
+  body: string;
+  created_by: number;
+  created_at: string;
+}

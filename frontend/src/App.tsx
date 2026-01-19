@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import TopicListPage from './pages/TopicListPage';
 import NewTopicPage from './pages/NewTopicPage';
+import TopicDetailPage from './pages/TopicDetailPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 	<Route path="/topics" element={<TopicListPage />} />
 	<Route path="/topics/new" element={<NewTopicPage />} /> 
+	<Route path="/topics/:id" element={<TopicDetailPage />} />
       </Routes>
     </Router>
   );

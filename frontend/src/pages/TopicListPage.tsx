@@ -51,6 +51,13 @@ const TopicListPage: React.FC = () => {
                 <li key={topic.id} style={{ marginBottom: '1rem' }}>
                   <h3>{topic.title}</h3>
                   <p>{topic.description}</p>
+		  <h3 
+      		     onClick={() => navigate(`/topics/${topic.id}`)} 
+      		     style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+    		   >
+      			{topic.title}
+    		  </h3>
+    		  <p>{topic.description}</p>
                   <small>Created by user {topic.created_by} • {new Date(topic.created_at).toLocaleString()}</small>
                 </li>
               ))}
