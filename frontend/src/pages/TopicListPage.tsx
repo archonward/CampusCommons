@@ -9,6 +9,12 @@ const TopicListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const handleLogout = () => {
+	localStorage.removeItem('currentUser');	// clear user from localstorage
+	navigate('/login');
+  };
+
+
   useEffect(() => {
     const fetchTopics = async () => {
       try {
@@ -45,8 +51,29 @@ const TopicListPage: React.FC = () => {
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         width: '100%',
-        maxWidth: '600px'
+        maxWidth: '600px',
+	position: 'relative'
       }}>
+
+	<button
+          onClick={handleLogout}
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            right: '1rem',
+            background: 'none',
+            border: 'none',
+            color: '#666',
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#d32f2f'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
+        >
+          Logout
+        </button>
         <h2 style={{ textAlign: 'center', margin: '0 0 1.5rem 0', color: '#333' }}>
           Topics
         </h2>
