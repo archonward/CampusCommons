@@ -1,54 +1,72 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
-type CurrentUser = { id: number; username?: string } | null;
-
-export default function NewTopicPage() {
+const NewPostPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ title: "", description: "" });
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const currentUser: CurrentUser = JSON.parse(
-    localStorage.getItem("currentUser") || "null"
-  );
-
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
-  };
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
-    if (!currentUser) return setError("You must be logged in.");
-    if (!form.title.trim()) return setError("Title is required.");
+    if (!id) {
+      setError('Topic ID is missing.');
+      return;
+    }
+
+    if (!currentUser) {
+      setError('You must be logged in to create a post.');
+      return;
+    }
+
+    if (!title.trim()) {
+      setError('Title is required.');
+      return;
+    }
+
+    if (!body.trim()) {
+      setError('Post body is required.');
+      return;
+    }
 
     setLoading(true);
+    setError(null);
+
     try {
-      const res = await fetch("http://localhost:8080/topics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch(`http://localhost:8080/topics/${id}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          title: form.title.trim(),
-          description: form.description.trim(),
+          title: title.trim(),
+          body: body.trim(),
           created_by: currentUser.id,
         }),
       });
 
-      if (!res.ok) throw new Error(await res.text());
-      navigate("/topics");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create topic."
-      );
-      console.error("Error:", err);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create post: ${response.status} ${errorText}`);
+      }
+
+      navigate(`/topics/${id}`);
+    } catch (err: any) {
+      console.error('Create post error:', err);
+      setError(err.message || 'Failed to create post. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    navigate(id ? `/topics/${id}` : '/topics');
   };
 
   return (
@@ -71,7 +89,7 @@ export default function NewTopicPage() {
         maxWidth: '600px'
       }}>
         <h2 style={{ textAlign: 'center', margin: '0 0 1.5rem 0', color: '#333' }}>
-          Create New Topic
+          Create New Post
         </h2>
 
         {error && (
@@ -89,11 +107,14 @@ export default function NewTopicPage() {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1.25rem' }}>
+            <label htmlFor="title" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#444' }}>
+              Title:
+            </label>
             <input
-              name="title"
-              placeholder="Title"
-              value={form.title}
-              onChange={handleChange}
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               disabled={loading}
               style={{
                 width: '100%',
@@ -107,13 +128,15 @@ export default function NewTopicPage() {
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="body" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#444' }}>
+              Body:
+            </label>
             <textarea
-              name="description"
-              placeholder="Description (optional)"
-              value={form.description}
-              onChange={handleChange}
+              id="body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
               disabled={loading}
-              rows={4}
+              rows={6}
               style={{
                 width: '100%',
                 padding: '0.75rem',
@@ -121,7 +144,8 @@ export default function NewTopicPage() {
                 border: '1px solid #ccc',
                 borderRadius: '4px',
                 resize: 'vertical',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                fontFamily: 'inherit'
               }}
             />
           </div>
@@ -142,12 +166,12 @@ export default function NewTopicPage() {
                 cursor: loading ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? 'Creating...' : 'Create Post'}
             </button>
 
             <button
               type="button"
-              onClick={() => navigate("/topics")}
+              onClick={handleCancel}
               disabled={loading}
               style={{
                 flex: 1,
@@ -167,4 +191,6 @@ export default function NewTopicPage() {
       </div>
     </div>
   );
-}
+};
+
+export default NewPostPage;

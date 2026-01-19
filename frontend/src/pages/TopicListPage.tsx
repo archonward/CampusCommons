@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Topic } from '../types';
 import { useNavigate } from 'react-router-dom';
 
-
 const TopicListPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -20,7 +19,7 @@ const TopicListPage: React.FC = () => {
         const data: Topic[] = await response.json();
         setTopics(data);
       } catch (err: any) {
-        setError(err.message || 'fail to load topics.');
+        setError(err.message || 'Failed to load topics.');
       } finally {
         setLoading(false);
       }
@@ -30,41 +29,96 @@ const TopicListPage: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <h2>Topics</h2>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      minHeight: '100vh',
+      backgroundColor: '#f5f7fa',
+      margin: 0,
+      fontFamily: 'Arial, sans-serif',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        width: '100%',
+        maxWidth: '600px'
+      }}>
+        <h2 style={{ textAlign: 'center', margin: '0 0 1.5rem 0', color: '#333' }}>
+          Topics
+        </h2>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {loading && <p>Loading topics...</p>}
+        {error && (
+          <div style={{
+            backgroundColor: '#ffebee',
+            color: '#c62828',
+            padding: '0.75rem',
+            borderRadius: '4px',
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
 
-      {!loading && !error && (
-        <div>
-	  <button onClick={() => navigate('/topics/new')}>
-  		Create New Topic
-	  </button>
-          <br />
-          <br />
-          {topics.length === 0 ? (
-            <p>No topics yet. You can create the first topic by using the button. </p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              {topics.map((topic) => (
-                <li key={topic.id} style={{ marginBottom: '1rem' }}>
-                  <h3>{topic.title}</h3>
-                  <p>{topic.description}</p>
-		  <h3 
-      		     onClick={() => navigate(`/topics/${topic.id}`)} 
-      		     style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
-    		   >
-      			{topic.title}
-    		  </h3>
-    		  <p>{topic.description}</p>
-                  <small>Created by user {topic.created_by} • {new Date(topic.created_at).toLocaleString()}</small>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+        {loading ? (
+          <p style={{ textAlign: 'center', color: '#666' }}>Loading topics...</p>
+        ) : (
+          <div>
+            <button
+              onClick={() => navigate('/topics/new')}
+              style={{
+                backgroundColor: '#388e3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '0.6rem 1rem',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginBottom: '1.5rem',
+                width: '100%'
+              }}
+            >
+              Create New Topic
+            </button>
+
+            {topics.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
+                No topics yet. You can create the first topic using the button above.
+              </p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {topics.map((topic) => (
+                  <li
+                    key={topic.id}
+                    style={{
+                      padding: '1rem',
+                      borderBottom: '1px solid #eee',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onClick={() => navigate(`/topics/${topic.id}`)}
+                  >
+                    <h3 style={{ margin: '0 0 0.25rem 0', color: '#1976d2' }}>
+                      {topic.title}
+                    </h3>
+                    <p style={{ margin: '0 0 0.5rem 0', color: '#555', fontSize: '0.95rem' }}>
+                      {topic.description}
+                    </p>
+                    <small style={{ color: '#888', fontSize: '0.85rem' }}>
+                      Created by user {topic.created_by} • {new Date(topic.created_at).toLocaleString()}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

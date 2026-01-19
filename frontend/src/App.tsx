@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import TopicListPage from './pages/TopicListPage';
 import NewTopicPage from './pages/NewTopicPage';
 import TopicDetailPage from './pages/TopicDetailPage';
+import NewPostPage from './pages/NewPostPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
 	<Route path="/topics" element={<TopicListPage />} />
 	<Route path="/topics/new" element={<NewTopicPage />} /> 
 	<Route path="/topics/:id" element={<TopicDetailPage />} />
+	<Route path="/topics/:id/posts/new" element={<NewPostPage />} />
       </Routes>
     </Router>
   );
