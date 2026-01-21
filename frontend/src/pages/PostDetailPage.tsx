@@ -1,6 +1,6 @@
-import React, {useState, useEffect} from 'react';
-import {useNavigate, useParams } from 'react-router-dom';
-import  {Post, Comment} from '../types';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Post, Comment } from '../types';
 
 const PostDetailPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -65,7 +65,7 @@ const PostDetailPage: React.FC = () => {
 
       const comment: Comment = await response.json();
       setComments([...comments, comment]);
-      setNewComment(''); // clear form
+      setNewComment('');
     } catch (err: any) {
       alert(err.message || 'Failed to post comment.');
     } finally {
@@ -79,13 +79,49 @@ const PostDetailPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '700px', margin: '2rem auto', padding: '0 1rem' }}>
-      <button onClick={() => navigate(-1)} style={{ marginBottom: '1rem' }}>
-        ← Back
-      </button>
+      {/* Back + Delete row */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+        <button onClick={() => navigate(-1)}>
+          ← Back
+        </button>
+
+        {post && (
+          <>
+            <button
+              onClick={() => {
+                if (window.confirm('Delete this post and all its comments?')) {
+                  fetch(`http://localhost:8080/posts/${post.id}`, { method: 'DELETE' })
+                    .then(res => {
+                      if (res.ok) {
+                        navigate(`/topics/${post.topic_id}`); // go back to topic
+                      } else {
+                        alert('Failed to delete post');
+                      }
+                    });
+                }
+              }}
+              style={{
+                marginLeft: '1rem',
+                background: 'none',
+                border: '1px solid #d32f2f',
+                color: '#d32f2f',
+                borderRadius: '3px',
+                padding: '0.2rem 0.5rem',
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              Delete Post
+            </button>
+          </>
+        )}
+      </div>
 
       <h2>{post.title}</h2>
       <p>{post.body}</p>
-      <small>By user {post.created_by} • {new Date(post.created_at).toLocaleString()}</small>
+      <small>
+        By user {post.created_by} • {new Date(post.created_at).toLocaleString()}
+      </small>
 
       <hr style={{ margin: '2rem 0' }} />
 
@@ -96,9 +132,18 @@ const PostDetailPage: React.FC = () => {
       ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {comments.map(comment => (
-            <li key={comment.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #eee' }}>
+            <li
+              key={comment.id}
+              style={{
+                marginBottom: '1rem',
+                paddingBottom: '1rem',
+                borderBottom: '1px solid #eee'
+              }}
+            >
               <p>{comment.body}</p>
-              <small>By user {comment.created_by} • {new Date(comment.created_at).toLocaleString()}</small>
+              <small>
+                By user {comment.created_by} • {new Date(comment.created_at).toLocaleString()}
+              </small>
             </li>
           ))}
         </ul>
@@ -127,3 +172,4 @@ const PostDetailPage: React.FC = () => {
 };
 
 export default PostDetailPage;
+

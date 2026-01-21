@@ -139,6 +139,33 @@ const TopicListPage: React.FC = () => {
                     <small style={{ color: '#888', fontSize: '0.85rem' }}>
                       Created by user {topic.created_by} • {new Date(topic.created_at).toLocaleString()}
                     </small>
+		     <button
+     			 onClick={(e) => {
+       				 e.stopPropagation(); // prevent triggering navigate
+       				 if (window.confirm('delete this topic? This will also delete all posts and comments.')) {
+         				 fetch(`http://localhost:8080/topics/${topic.id}`, { method: 'DELETE' })
+           					 .then(res => {
+             						 if (res.ok) {
+               						    setTopics(topics.filter(t => t.id !== topic.id));
+             						 } else {
+               						    alert('Failed to delete topic');
+             						 }
+           		    });
+       			   }
+     		        }}
+     			 style={{
+       				 marginLeft: '0.5rem',
+       				 background: 'none',
+       				 border: '1px solid #d32f2f',
+       				 color: '#d32f2f',
+       				 borderRadius: '3px',
+       				 padding: '0.1rem 0.4rem',
+       				 fontSize: '0.8rem',
+       				 cursor: 'pointer'
+     			 }}
+   		       >
+     			 Delete
+   		      </button>
                   </li>
                 ))}
               </ul>

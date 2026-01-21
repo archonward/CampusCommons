@@ -173,7 +173,7 @@ func CreatePost(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// Insert post
+	// insert post
 	result, err := database.DB.Exec(`INSERT INTO posts (topic_id, title, body, created_by)
 		VALUES (?, ?, ?, ?)`, topicID, input.Title, input.Body, input.CreatedBy) //SQL INSERT to create a new row
 
@@ -209,3 +209,45 @@ func CreatePost(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusCreated)
 	json.NewEncoder(writer).Encode(post)
 }
+
+// this func handles DELETE /posts/{id}
+func DeletePost(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodDelete {
+		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	postIDStr := request.PathValue("id")
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil || postID <= 0 {
+		http.Error(writer, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	// start off, delete all comments under this post
+	_, err = database.DB.Exec(`DELETE FROM comments 
+		WHERE post_id = ?`, postID)
+	if err != nil {
+		log.Printf("failed to delete comments: %v", err)
+		http.Error(writer, "failed to delete comments", http.StatusInternalServerError)
+		return
+	}
+
+	// Then, delete the post
+	result, err := database.DB.Exec(`DELETE FROM posts 
+		WHERE id = ?`, postID)
+	if err != nil {
+		log.Printf("failed to delete post: %v", err)
+		http.Error(writer, "failed to delete post", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(writer, "Post does not exist", http.StatusNotFound)
+		return
+	}
+
+	writer.WriteHeader(http.StatusNoContent) // 204
+}
+

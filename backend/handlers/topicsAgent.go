@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/archonward/CampusCommons/backend/database"
+	"strconv"
 )
 
 // A simple struct to start off, more fields can be added into the struct if necessary in the future.
@@ -20,9 +21,9 @@ type Topic struct {
 }
 
 // This func will handle GET requests for the topic of the post.
-func GetTopics(w http.ResponseWriter, r *http.Request) {
+func GetTopics(writer http.ResponseWriter, request *http.Request) {
 	// Set content type
-	w.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Content-Type", "application/json")
 
 	// Use the built in Query to find the rows required, error if there is no such topics
 	rows, err := database.DB.Query(`
@@ -32,7 +33,7 @@ func GetTopics(w http.ResponseWriter, r *http.Request) {
 	`)
 	if err != nil {
 		log.Printf("Database query error: %v", err)
-		http.Error(w, "No such topics in database", http.StatusInternalServerError)
+		http.Error(writer, "No such topics in database", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -43,7 +44,7 @@ func GetTopics(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(&t.ID, &t.Title, &t.Description, &t.CreatedBy, &t.CreatedAt)
 		if err != nil {
 			log.Printf("Row scan error: %v", err)
-			http.Error(w, "Data parsing error", http.StatusInternalServerError)
+			http.Error(writer, "Data parsing error", http.StatusInternalServerError)
 			return
 		}
 		topics = append(topics, t)
@@ -52,24 +53,24 @@ func GetTopics(w http.ResponseWriter, r *http.Request) {
 	// Check for iteration errors
 	if err = rows.Err(); err != nil {
 		log.Printf("Rows iteration error: %v", err)
-		http.Error(w, "Data retrieval error", http.StatusInternalServerError)
+		http.Error(writer, "Data retrieval error", http.StatusInternalServerError)
 		return
 	}
 
 	// Return JSON response
-	json.NewEncoder(w).Encode(topics)
+	json.NewEncoder(writer).Encode(topics)
 }
 
 // this new func will handle POST topic requests for people looking to post.
-func CreateTopic(w http.ResponseWriter, r *http.Request) {
+func CreateTopic(writer http.ResponseWriter, request *http.Request) {
 	
-	if r.Method != http.MethodPost {	// only POST
-		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+	if request.Method != http.MethodPost {	// only POST
+		http.Error(writer, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	// Set content type
-	w.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Content-Type", "application/json")
 
 	// Decode JSON request, simple struct with 3 fields, again more could be added later
 	var input struct {
@@ -78,20 +79,20 @@ func CreateTopic(w http.ResponseWriter, r *http.Request) {
 		CreatedBy   int    `json:"created_by"` // For now, i require user ID, 
 	}
 
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(request.Body)
 	if err := decoder.Decode(&input); err != nil {
 		log.Printf("Invalid JSON: %v", err)
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		http.Error(writer, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
 	// Validate to help to prevent bugs, title cannot be empty, userID also cannot
 	if input.Title == "" {
-		http.Error(w, "Title is required", http.StatusBadRequest)
+		http.Error(writer, "Title is required", http.StatusBadRequest)
 		return
 	}
 	if input.CreatedBy <= 0 {
-		http.Error(w, "Valid created_by user ID is required", http.StatusBadRequest)
+		http.Error(writer, "Valid created_by user ID is required", http.StatusBadRequest)
 		return
 	}
 
@@ -104,7 +105,7 @@ func CreateTopic(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("Database insert error: %v", err)
-		http.Error(w, "Failed to create topic", http.StatusInternalServerError)
+		http.Error(writer, "Failed to create topic", http.StatusInternalServerError)
 		return
 	}
 
@@ -112,25 +113,78 @@ func CreateTopic(w http.ResponseWriter, r *http.Request) {
 	topicID, err := result.LastInsertId()
 	if err != nil {
 		log.Printf("Failed to get last insert ID: %v", err)
-		http.Error(w, "Failed to retrieve topic ID", http.StatusInternalServerError)
+		http.Error(writer, "Failed to retrieve topic ID", http.StatusInternalServerError)
 		return
 	}
 
 	// Fetch the full topic (to return complete object with timestamps)
 	var topic Topic
-	err = database.DB.QueryRow(`
-		SELECT id, title, description, created_by, created_at
+	err = database.DB.QueryRow(`SELECT id, title, description, created_by, created_at
 		FROM topics
-		WHERE id = ?
-	`, topicID).Scan(&topic.ID, &topic.Title, &topic.Description, &topic.CreatedBy, &topic.CreatedAt)
+		WHERE id = ?`, topicID).Scan(&topic.ID, &topic.Title, &topic.Description, &topic.CreatedBy, &topic.CreatedAt)
 
 	if err != nil {
 		log.Printf("Failed to fetch created topic: %v", err)
-		http.Error(w, "Failed to retrieve created topic", http.StatusInternalServerError)
+		http.Error(writer, "Failed to retrieve created topic", http.StatusInternalServerError)
 		return
 	}
 
 	// Return 201 Created + JSON topic
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(topic)
+	writer.WriteHeader(http.StatusCreated)
+	json.NewEncoder(writer).Encode(topic)
 }
+
+// this func handles DELETE /topics/{id}
+func DeleteTopic(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodDelete {
+		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	topicIDStr := request.PathValue("id")
+	topicID, err := strconv.Atoi(topicIDStr)
+	if err != nil || topicID <= 0 {
+		http.Error(writer, "Invalid topic ID", http.StatusBadRequest)
+		return
+	}
+
+	// start off by delete all comments under posts in this topic
+	_, err = database.DB.Exec(`DELETE FROM comments 
+		WHERE post_id IN (SELECT id FROM posts WHERE topic_id = ?)`, topicID)
+	if err != nil {
+		log.Printf("Failed to delete comments: %v", err)
+		http.Error(writer, "Failed to delete associated comments", http.StatusInternalServerError)
+		return
+	}
+
+	// delete all posts in this topic
+	_, err = database.DB.Exec(`
+		DELETE FROM posts 
+		WHERE topic_id = ?
+	`, topicID)
+	if err != nil {
+		log.Printf("Failed to delete posts: %v", err)
+		http.Error(writer, "Failed to delete associated posts", http.StatusInternalServerError)
+		return
+	}
+
+	// here we delete the topic
+	result, err := database.DB.Exec(`
+		DELETE FROM topics 
+		WHERE id = ?
+	`, topicID)
+	if err != nil {
+		log.Printf("Failed to delete topic: %v", err)
+		http.Error(writer, "Failed to delete topic", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(writer, "Topic not found", http.StatusNotFound)
+		return
+	}
+
+	writer.WriteHeader(http.StatusNoContent) // status 204
+}
+

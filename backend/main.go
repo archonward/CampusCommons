@@ -20,6 +20,7 @@ func main() {
 	})
 	
 	mux.HandleFunc("/login", handlers.Login)
+	mux.HandleFunc("/topics/{id}", handlers.DeleteTopic)
 	
 	mux.HandleFunc("/posts/{id}/comments", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -43,8 +44,17 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/posts/{id}", handlers.GetPostByID);
-	
+	mux.HandleFunc("/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
+    		switch r.Method {
+    		case http.MethodGet:
+      			handlers.GetPostByID(w, r)
+    		case http.MethodDelete:
+        		handlers.DeletePost(w, r)
+    		default:
+        		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+    		}
+	})	
+
 	//mux.HandleFunc("/topics", handlers.GetTopics) // any request on get Topics handled here
 	//mux.HandleFunc("/topics", handlers.CreateTopic)
 
