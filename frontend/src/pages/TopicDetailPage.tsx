@@ -173,9 +173,11 @@ const TopicDetailPage: React.FC = () => {
                   borderRadius: '4px'
                 }}
               >
-                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1976d2' }}>
-                  {post.title}
-                </h4>
+                <h4	onClick={() => navigate(`/posts/${post.id}`)}
+  			style={{ margin: '0 0 0.25rem 0', cursor: 'pointer', color: '#1976d2' }}
+		>
+  			{post.title}
+		</h4>
                 <p style={{ margin: '0 0 0.5rem 0', color: '#444', whiteSpace: 'pre-wrap' }}>
                   {post.body}
                 </p>

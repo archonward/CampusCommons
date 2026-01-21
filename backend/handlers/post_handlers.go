@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -23,20 +24,20 @@ type Post struct {
 func GetPostsByTopic(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 
-	// extract topic ID from URL
+	// extract topic ID from URL path
 	topicIDStr := request.PathValue("id")
 	if topicIDStr == "" {
 		http.Error(writer, "topic ID is required", http.StatusBadRequest)
 		return
 	}
 
-	topicID, err := strconv.Atoi(topicIDStr)
+	topicID, err := strconv.Atoi(topicIDStr)	// convert to int
 	if err != nil || topicID <= 0 {
 		http.Error(writer, "Invalid topic ID", http.StatusBadRequest)
 		return
 	}
 
-	// Check if topic exists
+	// Check if topic exists first
 	var exists bool
 	err = database.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM topics WHERE id = ?)", topicID).Scan(&exists)
 	// standard SQL query to check for presence of topic
@@ -50,7 +51,7 @@ func GetPostsByTopic(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// Fetch posts
+	// Fetch all posts under the topic, starting from the oldest
 	rows, err := database.DB.Query(`SELECT id, topic_id, title, body, created_by, created_at
 		FROM posts
 		WHERE topic_id = ?
@@ -61,15 +62,17 @@ func GetPostsByTopic(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "failed to fetch posts", http.StatusInternalServerError)	//send to react
 		return
 	}
+	// close rows when done to avoid leaking DB resources
 	defer rows.Close()
 
-	var postList []Post
+	postList := []Post{}	
 	for rows.Next() {	// loop runs once per row, then moves onto next
 		var p Post
 		err := rows.Scan(&p.ID, &p.TopicID, &p.Title, &p.Body, &p.CreatedBy, &p.CreatedAt)
 		if err != nil {
+			// if scanning fails, return 500
 			log.Printf("row error: %v", err)
-			http.Error(writer, "parsing error", http.StatusInternalServerError)	// send the http response back to react
+			http.Error(writer, "parsing error", http.StatusInternalServerError)	// send the http error back to react
 			return
 		}
 		postList = append(postList, p)	// add the Post to the list
@@ -85,11 +88,41 @@ func GetPostsByTopic(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(postList)	// converts the list of Post into JSON, writes direct to ResponseWriter
 }
 
+func GetPostByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")	// tell client response will be JSON
+
+	postIDStr := r.PathValue("id")
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil || postID <= 0 {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	var p Post
+	//query for a single post by ID
+	err = database.DB.QueryRow(`
+		SELECT id, topic_id, title, body, created_by, created_at
+		FROM posts
+		WHERE id = ?
+	`, postID).Scan(&p.ID, &p.TopicID, &p.Title, &p.Body, &p.CreatedBy, &p.CreatedAt)
+
+	if err == sql.ErrNoRows {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		log.Printf("Failed to fetch post: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(p)
+}
+
 // this func handles POST /topics/id/posts
 func CreatePost(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 
-	// Extract topic ID
+	// Extract topic ID from URL
 	topicIDStr := request.PathValue("id")
 	if topicIDStr == "" {
 		http.Error(writer, "topic ID is required", http.StatusBadRequest)
@@ -114,7 +147,7 @@ func CreatePost(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// parsing the request body
+	// expected JSON body for creeating post
 	var input struct {
 		Title     string `json:"title"`
 		Body      string `json:"body"`
@@ -149,7 +182,8 @@ func CreatePost(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "Failed to create post", http.StatusInternalServerError)
 		return
 	}
-
+	
+	// get the auto generated post ID from database
 	postID, err := result.LastInsertId()
 	if err != nil {
 		log.Printf("failed to get post ID: %v", err)
@@ -157,7 +191,7 @@ func CreatePost(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// now fetch full post
+	// Read the inserted post back from the database so we can return it as JSON.
 	var post Post
 	row := database.DB.QueryRow(`
 		SELECT id, topic_id, title, body, created_by, created_at

@@ -9,7 +9,7 @@ export interface Topic {
   title: string;
   description: string;
   created_by: number;
-  created_at: string; // ISO 8601 string
+  created_at: string; // ISO 8601
 }
 
 export interface Post {
@@ -19,4 +19,12 @@ export interface Post {
   body: string;
   created_by: number;
   created_at: string;
+}
+
+export interface Comment {
+  id: number;
+  post_id: number;
+  body: string;
+  created_by: number;
+  created_at: string; // ISO 8601
 }

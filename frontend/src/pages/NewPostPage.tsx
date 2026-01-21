@@ -16,22 +16,22 @@ const NewPostPage: React.FC = () => {
     e.preventDefault();
 
     if (!id) {
-      setError('Topic ID is missing.');
+      setError('topic ID is missing.');
       return;
     }
 
     if (!currentUser) {
-      setError('You must be logged in to create a post.');
+      setError('you must be logged in to create a post.');
       return;
     }
 
     if (!title.trim()) {
-      setError('Title is required.');
+      setError('title is required.');
       return;
     }
 
     if (!body.trim()) {
-      setError('Post body is required.');
+      setError('post body is required.');
       return;
     }
 
