@@ -88,13 +88,13 @@ func GetPostsByTopic(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(postList)	// converts the list of Post into JSON, writes direct to ResponseWriter
 }
 
-func GetPostByID(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")	// tell client response will be JSON
+func GetPostByID(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")	// tell client response will be JSON
 
-	postIDStr := r.PathValue("id")
+	postIDStr := request.PathValue("id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil || postID <= 0 {
-		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		http.Error(writer, "Invalid post ID", http.StatusBadRequest)
 		return
 	}
 
@@ -107,15 +107,15 @@ func GetPostByID(w http.ResponseWriter, r *http.Request) {
 	`, postID).Scan(&p.ID, &p.TopicID, &p.Title, &p.Body, &p.CreatedBy, &p.CreatedAt)
 
 	if err == sql.ErrNoRows {
-		http.Error(w, "Post not found", http.StatusNotFound)
+		http.Error(writer, "Post not found", http.StatusNotFound)
 		return
 	} else if err != nil {
 		log.Printf("Failed to fetch post: %v", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		http.Error(writer, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(p)
+	json.NewEncoder(writer).Encode(p)
 }
 
 // this func handles POST /topics/id/posts
