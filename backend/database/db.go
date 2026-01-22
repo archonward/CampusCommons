@@ -11,7 +11,6 @@ import (
 
 var DB *sql.DB
 
-// InitDB initializes the SQLite database and creates tables
 func InitDB() {
 	// Create data directory if it doesn't exist
 	const dataDir = "data"
@@ -30,18 +29,15 @@ func InitDB() {
 		log.Fatal("Failed to open database:", err)
 	}
 
-	// Test the connection
-	if err := DB.Ping(); err != nil {
+	if err := DB.Ping(); err != nil {			// Test the connection
 		log.Fatal("Failed to ping database:", err)
 	}
 
-	fmt.Println("✅ Connected to SQLite database at", dbPath)
+	log.Println("Connected to SQLite database at", dbPath)
 
-	// Create tables
 	createTables()
 }
 
-// createTables sets up the required tables
 func createTables() {
 	schema := `
 	CREATE TABLE IF NOT EXISTS users (
@@ -86,5 +82,5 @@ func createTables() {
 		log.Fatal("Failed to create tables:", err)
 	}
 
-	fmt.Println("✅ Tables created (if they didn't exist)")
+	log.Println("Tables created, if they didn't exist")
 }
