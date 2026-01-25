@@ -20,7 +20,42 @@ func main() {
 	})
 	
 	mux.HandleFunc("/login", handlers.Login)
-	mux.HandleFunc("/topics/{id}", handlers.DeleteTopic)
+	//mux.HandleFunc("/topics/{id}", handlers.DeleteTopic)
+
+	mux.HandleFunc("/topics", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method { 	// switch here chooses which option to run based on the value of r.Method
+		case http.MethodGet:
+			handlers.GetTopics(w, r)
+		case http.MethodPost:
+			handlers.CreateTopic(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/topics/{id}", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodDelete:
+			handlers.DeleteTopic(w, r)
+		case http.MethodPut:
+			handlers.UpdateTopic(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	
+	mux.HandleFunc("/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetPostByID(w, r)
+		case http.MethodDelete:
+			handlers.DeletePost(w, r)
+		case http.MethodPut:
+			handlers.UpdatePost(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	
 	mux.HandleFunc("/posts/{id}/comments", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -44,31 +79,9 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
-    		switch r.Method {
-    		case http.MethodGet:
-      			handlers.GetPostByID(w, r)
-    		case http.MethodDelete:
-        		handlers.DeletePost(w, r)
-    		default:
-        		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-    		}
-	})	
-
 	//mux.HandleFunc("/topics", handlers.GetTopics) // any request on get Topics handled here
 	//mux.HandleFunc("/topics", handlers.CreateTopic)
 
-	mux.HandleFunc("/topics", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method { 	// switch here chooses which option to run based on the value of r.Method
-		case http.MethodGet:
-			handlers.GetTopics(w, r)
-		case http.MethodPost:
-			handlers.CreateTopic(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-	
 	// Enable CORS
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:3000"}, // React dev server
@@ -81,7 +94,7 @@ func main() {
 	handler := c.Handler(mux)
 
 	port := ":8080"
-	fmt.Printf("🚀 Server starting on http://localhost%s\n", port)
-	fmt.Printf("🔌 CORS enabled for http://localhost:3000\n")
+	fmt.Printf("Server starting on http://localhost%s\n", port)
+	fmt.Printf("CORS enabled for http://localhost:3000\n")
 	log.Fatal(http.ListenAndServe(port, handler))
 }

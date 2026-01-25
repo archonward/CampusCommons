@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	//"database/sql"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -137,14 +137,14 @@ func CreateTopic(writer http.ResponseWriter, request *http.Request) {
 // this func handles DELETE /topics/{id}
 func DeleteTopic(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodDelete {
-		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	topicIDStr := request.PathValue("id")
 	topicID, err := strconv.Atoi(topicIDStr)
 	if err != nil || topicID <= 0 {
-		http.Error(writer, "Invalid topic ID", http.StatusBadRequest)
+		http.Error(writer, "invalid topic ID", http.StatusBadRequest)
 		return
 	}
 
@@ -163,19 +163,17 @@ func DeleteTopic(writer http.ResponseWriter, request *http.Request) {
 		WHERE topic_id = ?
 	`, topicID)
 	if err != nil {
-		log.Printf("Failed to delete posts: %v", err)
-		http.Error(writer, "Failed to delete associated posts", http.StatusInternalServerError)
+		log.Printf("failed to delete posts: %v", err)
+		http.Error(writer, "failed to delete associated posts", http.StatusInternalServerError)
 		return
 	}
 
 	// here we delete the topic
-	result, err := database.DB.Exec(`
-		DELETE FROM topics 
-		WHERE id = ?
-	`, topicID)
+	result, err := database.DB.Exec(`DELETE FROM topics 
+		WHERE id = ?`, topicID)
 	if err != nil {
-		log.Printf("Failed to delete topic: %v", err)
-		http.Error(writer, "Failed to delete topic", http.StatusInternalServerError)
+		log.Printf("failed to delete topic: %v", err)
+		http.Error(writer, "failed to delete topic", http.StatusInternalServerError)
 		return
 	}
 
@@ -186,5 +184,67 @@ func DeleteTopic(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	writer.WriteHeader(http.StatusNoContent) // status 204
+}
+
+// this func handles PUT PUT /topics/{id} requests
+func UpdateTopic(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPut {
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	topicIDStr := request.PathValue("id")
+	topicID, err := strconv.Atoi(topicIDStr)
+	if err != nil || topicID <= 0 {
+		http.Error(writer, "invalid topic ID", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure topic exists
+	var existingTitle string
+	err = database.DB.QueryRow("SELECT title FROM topics WHERE id = ?", topicID).Scan(&existingTitle)
+	if err == sql.ErrNoRows {
+		http.Error(writer, "topic not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		log.Printf("DB error checking topic: %v", err)
+		http.Error(writer, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	var input struct {							 
+		Title       string `json:"title"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(request.Body).Decode(&input); err != nil {		// Parsing
+		http.Error(writer, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if input.Title == "" {
+		http.Error(writer, "title is required", http.StatusBadRequest)
+		return
+	}
+
+	_, err = database.DB.Exec(`UPDATE topics 
+		SET title = ?, description = ? 
+		WHERE id = ?`, input.Title, input.Description, topicID)		// Update row
+	if err != nil {
+		log.Printf("failed to update topic: %v", err)
+		http.Error(writer, "failed to update topic", http.StatusInternalServerError)
+		return
+	}
+
+	var updatedTopic Topic
+	err = database.DB.QueryRow(`SELECT id, title, description, created_by, created_at
+		FROM topics
+		WHERE id = ?`, topicID).Scan(&updatedTopic.ID, &updatedTopic.Title, &updatedTopic.Description, &updatedTopic.CreatedBy, &updatedTopic.CreatedAt)	// Return updated topic
+
+	if err != nil {
+		log.Printf("failed to fetch updated topic: %v", err)
+		http.Error(writer, "failed to retrieve updated topic", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(writer).Encode(updatedTopic)
 }
 

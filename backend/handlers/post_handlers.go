@@ -244,10 +244,75 @@ func DeletePost(writer http.ResponseWriter, request *http.Request) {
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		http.Error(writer, "Post does not exist", http.StatusNotFound)
+		http.Error(writer, "post does not exist", http.StatusNotFound)
 		return
 	}
 
 	writer.WriteHeader(http.StatusNoContent) // 204
+}
+
+// this func handles PUT /posts/{id}
+func UpdatePost(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPut {
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+
+	postIDStr := request.PathValue("id")	
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil || postID <= 0 {
+		http.Error(writer, "invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	var existingTitle string
+	err = database.DB.QueryRow("SELECT title FROM posts WHERE id = ?", postID).Scan(&existingTitle)
+	if err == sql.ErrNoRows {
+		http.Error(writer, "post not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		log.Printf("DB error checking post: %v", err)
+		http.Error(writer, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	
+	var input struct {
+		Title string `json:"title"`
+		Body  string `json:"body"`
+	}
+	if err := json.NewDecoder(request.Body).Decode(&input); err != nil {	// parsing
+		http.Error(writer, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if input.Title == "" || input.Body == "" {
+		http.Error(writer, "title and body are required", http.StatusBadRequest)
+		return
+	}
+
+
+	_, err = database.DB.Exec(`UPDATE posts 
+		SET title = ?, body = ? 
+		WHERE id = ?`, input.Title, input.Body, postID)			// update row
+	if err != nil {
+		log.Printf("failed to update post: %v", err)
+		http.Error(writer, "failed to update post", http.StatusInternalServerError)
+		return
+	}
+
+	var updatedPost Post
+	err = database.DB.QueryRow(`SELECT id, topic_id, title, body, created_by, created_at
+		FROM posts
+		WHERE id = ?`, postID).Scan(&updatedPost.ID, &updatedPost.TopicID, &updatedPost.Title, &updatedPost.Body, &updatedPost.CreatedBy, &updatedPost.CreatedAt)
+
+	if err != nil {
+		log.Printf("failed to fetch post: %v", err)
+		http.Error(writer, "failed to fetch post", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(writer).Encode(updatedPost)
 }
 
