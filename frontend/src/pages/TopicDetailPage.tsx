@@ -150,6 +150,11 @@ const TopicDetailPage: React.FC = () => {
         >
           Create New Post
         </button>
+	
+	{/* Edit  Button */}
+	<button onClick={() => navigate(`/topics/${topic.id}/edit`)}>
+		 Edit Topic
+	</button>
 
         {/* Posts Section */}
         <h3 style={{ color: '#333', marginBottom: '1rem' }}>

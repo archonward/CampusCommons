@@ -22,25 +22,25 @@ const PostDetailPage: React.FC = () => {
       return;
     }
 
-    const fetchPostAndComments = async () => {
-      try {
-        // Fetch single post
-        const postRes = await fetch(`http://localhost:8080/posts/${postId}`);
-        if (!postRes.ok) throw new Error('Post not found');
-        const postData: Post = await postRes.json();
+  const fetchPostAndComments = async () => {
+    try {
+      // Fetch single post
+      const postRes = await fetch(`http://localhost:8080/posts/${postId}`);
+      if (!postRes.ok) throw new Error('Post not found');
+      const postData: Post = await postRes.json();
 
-        // Fetch comments
-        const commentsRes = await fetch(`http://localhost:8080/posts/${postId}/comments`);
-        if (!commentsRes.ok) throw new Error('Failed to fetch comments');
-        const commentsData: Comment[] = await commentsRes.json();
+      // Fetch comments
+      const commentsRes = await fetch(`http://localhost:8080/posts/${postId}/comments`);
+      if (!commentsRes.ok) throw new Error('Failed to fetch comments');
+      const commentsData: Comment[] = await commentsRes.json();
 
-        setPost(postData);
-        setComments(commentsData);
-      } catch (err: any) {
+      setPost(postData);
+      setComments(commentsData);
+    } catch (err: any) {
         setError(err.message || 'Failed to load post and comments.');
-      } finally {
+    } finally {
         setLoading(false);
-      }
+    }
     };
 
     fetchPostAndComments();
@@ -113,6 +113,13 @@ const PostDetailPage: React.FC = () => {
             >
               Delete Post
             </button>
+
+	    <button
+		onClick={() => navigate(`/posts/${post.id}/edit`)}
+		style={{ marginLeft: '0.5rem' }}
+		>
+ 		   Edit
+	    </button>
           </>
         )}
       </div>
